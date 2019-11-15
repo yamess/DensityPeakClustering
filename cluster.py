@@ -51,7 +51,6 @@ plt.show()
 import pyprind
 
 
-
 # ------------------- DEBUT DE L'ALGO -------------------------
 #Step 1: Calculating density at each point
 

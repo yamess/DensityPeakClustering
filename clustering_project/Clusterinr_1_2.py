@@ -91,12 +91,39 @@ class Process:
                 nbr += 1
         return nbr
 
-    # def peak(self):
-    #     rhos = self.func_densite()
-    #     n = len(rhos)
-    #     peak = list(np.zeros(n, dtype=int))
-    #     unique_val = np.unique(rhos)
-    #     for i in unique_val:
+    def parallele(self, func, arg, max_worker):
+        """
+        Cett fonction permet de paralleliser les tache de la fonction f
+        sur les arguments arg données
+        :param func: Fonction de tache
+        :param arg: les arguments de la fonction f à évaluer
+        :param max_worker: Nombre total de thread à lançer
+        :return: Liste des resultats de l'exécution de la fonction f sur pour chaque argument de arg
+        """
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_worker=max_worker) as executor:
+            result = executor.map(func, arg, timeout=None)
+        return result
+
+    def max_val(self, array):
+        """
+        Cette fonction return la valeur maximal dans une liste array
+        en appliquant un seul iteration du tri a bulle
+        :param array: la liste à evaluer
+        :return: la valeur maximale de la liste
+        """
+        n = len(array)
+        max_val = array[n]
+        for i in range(1,n):
+            if array[i] > max_val:
+                max_val = array[i]
+        return max_val
+
+    def peak(self):
+         rhos = self.func_densite()
+         n = len(rhos)
+         peak = list(np.zeros(n, dtype=int))
+         unique_val = np.unique(rhos)
 
 
 @timing
