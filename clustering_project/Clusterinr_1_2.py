@@ -67,7 +67,7 @@ class Process:
         """
         dmin = self.d_min
         n = self.nbr_points
-        dens = np.zeros(n, dtype=int) # on defini un liste
+        dens = np.zeros(n, dtype=int)  # on defini un liste
         for i in range(n):
             a = self.df.iloc[i, :]
             for j in range(i+1, n):
