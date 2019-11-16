@@ -1,5 +1,5 @@
 import numpy as np
-import pandas
+import pandas as pd
 from matplotlib import pyplot as plt
 import sklearn
 import matplotlib
@@ -13,7 +13,7 @@ import pip
 
 #df = pandas.read_csv("data.csv", delimiter=";")
 # lECTURE DU FICHIER SOUS FORMAT dataframe
-d = np.loadtxt("data.csv", delimiter=';')
+d = pd.read_csv("data.csv", sep=';', header=None)
 
 # l a3ieme colonne non utilisée dans l'algorithm
 # elle sert juste à valider les resultats

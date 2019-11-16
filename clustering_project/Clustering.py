@@ -11,7 +11,7 @@ import pandas as pd
 
 def timing(func):
     """
-    Cette fonction est un decorateur qui permet de calculer le temps d'execution d'une fonction
+    Cette fonction est un decorateur qui met de calculer le temps d'execution d'une fonction
     :param func: la fonction a évaluer
     :return: exécute la fonction et le temps d'exécution
     """
@@ -28,11 +28,26 @@ def timing(func):
     return wrapper
 
 
+def parallele(func, arg, max_worker):
+    """
+    Cett fonction permet de paralleliser les tache de la fonction f
+    sur les arguments arg données
+    :param func: Fonction de tache
+    :param arg: les arguments de la fonction f à évaluer
+    :param max_worker: Nombre total de thread à lançer
+    :return: Liste des resultats de l'exécution de la fonction f sur pour chaque argument de arg
+    """
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_worker=max_worker) as executor:
+        result = executor.map(func, arg, timeout=None)
+    return result
+
+
 class Process:
     """
     Clustering algorithm to optimize the
     """
-    def __init__(self, df, d_min):
+    def __init__(self, df, d_min, nb_cluster=4):
         """
         Initialisation des paramètres à la construction de la classe
         :param df: un dataframe de type pandas
@@ -43,8 +58,8 @@ class Process:
         self.nbr_points = self.df.shape[0]
         self.nbr_dim = self.df.shape[1]
         self.densite = []
-        self.pos = []
-        self.eps = 1e-20 # valeur d'epsilon pour comparer à 0
+        self.nb_cluster = nb_cluster
+        self.eps = 1e-20  # valeur d'epsilon pour comparer à 0
 
     def dist(self, point_a, point_b):
         """
@@ -68,14 +83,15 @@ class Process:
         dmin = self.d_min
         n = self.nbr_points
         dens = np.zeros(n, dtype=int)  # on defini un liste
+        result = list()
         for i in range(n):
             a = self.df.iloc[i, :]
             for j in range(i+1, n):
                 b = self.df.iloc[j, :]
                 if self.dist(point_a=a, point_b=b) < dmin:
                     dens[i] += 1
-                    dens[j] += 1
-        return dens
+            result.append([i, dens[i]])
+        return result
 
     def comptage(self, array, val):
         """
@@ -91,20 +107,6 @@ class Process:
                 nbr += 1
         return nbr
 
-    def parallele(self, func, arg, max_worker):
-        """
-        Cett fonction permet de paralleliser les tache de la fonction f
-        sur les arguments arg données
-        :param func: Fonction de tache
-        :param arg: les arguments de la fonction f à évaluer
-        :param max_worker: Nombre total de thread à lançer
-        :return: Liste des resultats de l'exécution de la fonction f sur pour chaque argument de arg
-        """
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_worker=max_worker) as executor:
-            result = executor.map(func, arg, timeout=None)
-        return result
-
     def max_val(self, array):
         """
         Cette fonction return la valeur maximal dans une liste array
@@ -113,27 +115,91 @@ class Process:
         :return: la valeur maximale de la liste
         """
         n = len(array)
-        max_val = array[n]
-        for i in range(1,n):
+        max_val = array[0]
+        for i in range(1, n):
             if array[i] > max_val:
                 max_val = array[i]
         return max_val
 
-    def peak(self):
-         rhos = self.func_densite()
-         n = len(rhos)
-         peak = list(np.zeros(n, dtype=int))
-         unique_val = np.unique(rhos)
+    def min_val(self, array):
+        """
+        Fonction pour trouver la plus petite valeur dans une liste
+        :param array: la liste à évaluer
+        :return: la plus petite valer de la liste
+        """
+        n = len(array)
+        min_val = array[0]
+        for i in range(1, n):
+            if array[i] < min_val:
+                min_val = array[i]
+        return min_val
+
+    def dist_min_grde_densite(self, dens):
+        """
+        Cette fonction permet de trouver la distance minimale
+        des point de grandes densités
+        :param dens: la table contenant la liste des points et leur densité
+        :return: une liste contenant le distance minimale
+        """
+        result = []
+        max_dens = self.max_val(np.transpose(dens)[1])
+        for i, couplet in enumerate(dens):
+            densite = couplet[1]
+            pt_a = self.df.iloc[couplet[0], :]
+            if densite == max_dens:
+                tmp_dist = []
+                for j in range(len(dens)):
+                    pt_b = self.df.iloc[j, :]
+                    tmp_dist.append(self.dist(point_a=pt_a, point_b=pt_b))
+                rho = self.max_val(tmp_dist)
+                result.append([couplet[0], couplet[1], round(rho, 2)])
+            else:
+                tmp_dist = []
+                for j in range(len(dens)):
+                    if couplet[1] < dens[j][1]:
+                        pt_b = self.df.iloc[j, :]
+                        tmp_dist.append(self.dist(point_a=pt_a, point_b=pt_b))
+                rho = self.min_val(tmp_dist)
+                result.append([couplet[0], couplet[1], round(rho, 2)])
+        return result
+
+    def cluster_centers_weigth(self, dens):
+        result = []
+        for i, couplet in enumerate(dens):
+            center = dens[i][1]*dens[i][2]
+            result.append([couplet[0], couplet[1], couplet[2], round(center, 2)])
+        return result
+
+    def clusters_centers(self, dens):
+        d = dens.copy()
+        spy = True
+        n = len(d) - 1
+        while spy:
+            spy = False
+            for i in range(n):
+                if d[i][3] > d[i + 1][3]:
+                    tmp = d[i]
+                    d[i] = d[i + 1]
+                    d[i + 1] = tmp
+                    spy = True
+        return d[-self.nb_cluster:]
 
 
 @timing
 def main():
     df = pd.read_csv("data.csv", sep=";", header=None, usecols=[0, 1])
-    p = Process(df, 0.5)
+    p = Process(df, 0.5, 5)
     dens = p.func_densite()
+    result = p.dist_min_grde_densite(dens)
+    clusters = p.cluster_centers_weigth(result)
+    centers = p.clusters_centers(clusters)
     print(f"Dimension de df: {df.shape}\n")
     print(f"Nombre de valeur de densité: {len(dens)}\n")
-    print(dens)
+    print(f"Nombre de valeur des triplets: {len(result)}\n")
+    print(f"{dens}\n")
+    print(f"{result}\n")
+    print(f"{clusters}")
+    print(f"{centers}")
 
 
 if __name__ == "__main__":
