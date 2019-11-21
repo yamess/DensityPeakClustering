@@ -1,12 +1,13 @@
 #####################################################
-# Author: Boukari Yameogo                           #
+# Author: Boukari Yameogo & Group                  	#
 # Date: 2019-11-05                                  #
-# This class is to verify if the dataset meets      #
-# the clustering conditions                         #
+# Density Peak Clustering						    #
+# Team Project				                        #
 #####################################################
 
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 
 
 def timing(func):
@@ -43,11 +44,11 @@ def parallele(func, arg, max_worker):
     return result
 
 
-class Process:
+class DPC:
     """
     Clustering algorithm to optimize the
     """
-    def __init__(self, df, d_min, nb_cluster=4):
+    def __init__(self, df, d_min=0.5, nb_cluster=4):
         """
         Initialisation des paramètres à la construction de la classe
         :param df: un dataframe de type pandas
@@ -107,32 +108,53 @@ class Process:
                 nbr += 1
         return nbr
 
-    def max_val(self, array):
+    def sort_n(self, arr, n_to_sort=1, how='max'):
         """
-        Cette fonction return la valeur maximal dans une liste array
-        en appliquant un seul iteration du tri a bulle
-        :param array: la liste à evaluer
-        :return: la valeur maximale de la liste
+        Cette fonction permet à de retourner les n valeur max/min d'une list
+        :param arr: la liste à trier
+        :param n_to_sort: n nombre à retourner
+        :param how: Préciser si minimum ou maximum
+        :return: n valeur max/min
         """
-        n = len(array)
-        max_val = array[0]
-        for i in range(1, n):
-            if array[i] > max_val:
-                max_val = array[i]
-        return max_val
-
-    def min_val(self, array):
-        """
-        Fonction pour trouver la plus petite valeur dans une liste
-        :param array: la liste à évaluer
-        :return: la plus petite valer de la liste
-        """
-        n = len(array)
-        min_val = array[0]
-        for i in range(1, n):
-            if array[i] < min_val:
-                min_val = array[i]
-        return min_val
+        arr_tmp = deepcopy(arr)
+        n = len(arr)
+        if n_to_sort == 1:
+            res = deepcopy(arr_tmp[0])
+            if how == 'max':
+                for j in range(n_to_sort, n):
+                    if arr_tmp[j] > res:
+                        res, arr_tmp[j] = arr_tmp[j], res
+            elif how == 'min':
+                for j in range(n_to_sort, n):
+                    if arr_tmp[j] < res:
+                        res, arr_tmp[j] = arr_tmp[j], res
+            return res
+        else:
+            res = deepcopy(arr_tmp[:n_to_sort])
+            swap = False
+            if how == 'max':
+                for i in range(n_to_sort):
+                    tmp = deepcopy(res[i])
+                    for j in range(n_to_sort, n):
+                        if arr_tmp[j] > tmp:
+                            tmp, arr_tmp[j] = arr_tmp[j], tmp
+                            swap = True
+                    if swap:
+                        res[i] = tmp
+                        swap = False
+                return res
+            elif how == 'min':
+                for i in range(n_to_sort):
+                    tmp = deepcopy(arr_tmp[i])
+                    for j in range(n_to_sort, n):
+                        if arr_tmp[j] < tmp:
+                            tmp, arr_tmp[j] = arr_tmp[j], tmp
+                            swap = True
+                    if swap:
+                        res[i] = tmp
+                        # resultat.append(tmp)
+                        swap = False
+                return res
 
     def dist_min_grde_densite(self, dens):
         """
@@ -142,7 +164,7 @@ class Process:
         :return: une liste contenant le distance minimale
         """
         result = []
-        max_dens = self.max_val(np.transpose(dens)[1])
+        max_dens = self.sort_n(np.transpose(dens)[1], 1, 'max')
         for i, couplet in enumerate(dens):
             densite = couplet[1]
             pt_a = self.df.iloc[couplet[0], :]
@@ -151,7 +173,7 @@ class Process:
                 for j in range(len(dens)):
                     pt_b = self.df.iloc[j, :]
                     tmp_dist.append(self.dist(point_a=pt_a, point_b=pt_b))
-                rho = self.max_val(tmp_dist)
+                rho = self.sort_n(tmp_dist, 1, 'max')
                 result.append([couplet[0], couplet[1], round(rho, 2)])
             else:
                 tmp_dist = []
@@ -159,11 +181,16 @@ class Process:
                     if couplet[1] < dens[j][1]:
                         pt_b = self.df.iloc[j, :]
                         tmp_dist.append(self.dist(point_a=pt_a, point_b=pt_b))
-                rho = self.min_val(tmp_dist)
+                rho = self.sort_n(tmp_dist, 1, 'min')
                 result.append([couplet[0], couplet[1], round(rho, 2)])
         return result
 
     def cluster_centers_weigth(self, dens):
+        """
+
+        :param dens:
+        :return:
+        """
         result = []
         for i, couplet in enumerate(dens):
             center = dens[i][1]*dens[i][2]
@@ -171,6 +198,11 @@ class Process:
         return result
 
     def clusters_centers(self, dens):
+        """
+
+        :param dens:
+        :return:
+        """
         d = dens.copy()
         spy = True
         n = len(d) - 1
@@ -188,11 +220,11 @@ class Process:
 @timing
 def main():
     df = pd.read_csv("data.csv", sep=";", header=None, usecols=[0, 1])
-    p = Process(df, 0.5, 5)
-    dens = p.func_densite()
-    result = p.dist_min_grde_densite(dens)
-    clusters = p.cluster_centers_weigth(result)
-    centers = p.clusters_centers(clusters)
+    pc = DPC(df, 0.5, 5)
+    dens = pc.func_densite()
+    result = pc.dist_min_grde_densite(dens)
+    clusters = pc.cluster_centers_weigth(result)
+    centers = pc.clusters_centers(clusters)
     print(f"Dimension de df: {df.shape}\n")
     print(f"Nombre de valeur de densité: {len(dens)}\n")
     print(f"Nombre de valeur des triplets: {len(result)}\n")
