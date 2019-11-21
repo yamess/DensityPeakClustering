@@ -8,6 +8,7 @@
 import numpy as np
 import pandas as pd
 from copy import deepcopy
+from mypackages.Heapsort import Heap
 
 
 def timing(func):
@@ -61,15 +62,16 @@ class DPC:
         self.densite = []
         self.nb_cluster = nb_cluster
         self.eps = 1e-20  # valeur d'epsilon pour comparer à 0
-        self.get_params = dict()
+        # self.get_params = dict()
+        # self.heap = Heap()
 
-    @property
-    def get_params(self):
-        return self.get_params
-
-    @get_params.setter
-    def get_params(self, value):
-        self.get_params = value
+    # @property
+    # def get_params(self):
+    #     return self.get_params
+    #
+    # @get_params.setter
+    # def get_params(self, value):
+    #     self.get_params = value
 
     def dist(self, point_a, point_b):
         """
@@ -90,32 +92,31 @@ class DPC:
         Ici le point pour lequel le calcul est fait n'est pas inclu
         :return: Retourne un liste contenant la densité pour chaque point
         """
-        dmin = self.d_min
         n = self.nbr_points
-        dens = np.zeros(n, dtype=int)  # on defini un liste
-        result = list()
+        dens = np.zeros(n, dtype=int)  # on defini un liste vide
+        result = list()  # Initialisation de la liste en sortie à vide
         for i in range(n):
-            a = self.df.iloc[i, :]
+            a = self.df.iloc[i, :]  # obtention des coordinnées du point a
             for j in range(i+1, n):
-                b = self.df.iloc[j, :]
-                if self.dist(point_a=a, point_b=b) < dmin:
+                b = self.df.iloc[j, :]  # obtention des coordinnées du point b
+                if self.dist(point_a=a, point_b=b) < self.d_min:
                     dens[i] += 1
             result.append([i, dens[i]])
         return result
 
-    def comptage(self, array, val):
-        """
-        Fonction de comptage d'un nombre dans un array
-        :param array: array dans lequel la recherche doit s'effectuer
-        :param val: la valeur dont on veut compter l'occurence
-        :return: Retourne le nombre total d'occurence de val dans array
-        """
-        n = len(array)
-        nbr = 0
-        for i in range(n):
-            if (array[i] - val) > self.eps:
-                nbr += 1
-        return nbr
+    # def comptage(self, array, val):
+    #     """
+    #     Fonction de comptage d'un nombre val dans la list array
+    #     :param array: array dans lequel la recherche doit s'effectuer
+    #     :param val: la valeur dont on veut compter l'occurence
+    #     :return: Retourne le nombre total d'occurence de val dans array
+    #     """
+    #     n = len(array)
+    #     nbr = 0
+    #     for i in range(n):
+    #         if (array[i] - val) > self.eps:
+    #             nbr += 1
+    #     return nbr
 
     def sort_n(self, arr, n_to_sort=1, how='max'):
         """
@@ -130,13 +131,13 @@ class DPC:
         if n_to_sort == 1:
             res = deepcopy(arr_tmp[0])
             if how == 'max':
-                for j in range(n_to_sort, n):
+                for j in range(n_to_sort,n):
                     if arr_tmp[j] > res:
-                        res, arr_tmp[j] = arr_tmp[j], res
+                        res,arr_tmp[j] = arr_tmp[j],res
             elif how == 'min':
-                for j in range(n_to_sort, n):
+                for j in range(n_to_sort,n):
                     if arr_tmp[j] < res:
-                        res, arr_tmp[j] = arr_tmp[j], res
+                        res,arr_tmp[j] = arr_tmp[j],res
             return res
         else:
             res = deepcopy(arr_tmp[:n_to_sort])
@@ -144,9 +145,9 @@ class DPC:
             if how == 'max':
                 for i in range(n_to_sort):
                     tmp = deepcopy(res[i])
-                    for j in range(n_to_sort, n):
+                    for j in range(n_to_sort,n):
                         if arr_tmp[j] > tmp:
-                            tmp, arr_tmp[j] = arr_tmp[j], tmp
+                            tmp,arr_tmp[j] = arr_tmp[j],tmp
                             swap = True
                     if swap:
                         res[i] = tmp
@@ -155,15 +156,16 @@ class DPC:
             elif how == 'min':
                 for i in range(n_to_sort):
                     tmp = deepcopy(arr_tmp[i])
-                    for j in range(n_to_sort, n):
+                    for j in range(n_to_sort,n):
                         if arr_tmp[j] < tmp:
-                            tmp, arr_tmp[j] = arr_tmp[j], tmp
+                            tmp,arr_tmp[j] = arr_tmp[j],tmp
                             swap = True
                     if swap:
                         res[i] = tmp
                         # resultat.append(tmp)
                         swap = False
                 return res
+
 
     def dist_min_grde_densite(self, dens):
         """
@@ -228,7 +230,7 @@ class DPC:
 
 @timing
 def main():
-    df = pd.read_csv("data.csv", sep=";", header=None, usecols=[0, 1])
+    df = pd.read_csv("data/data.csv", sep=";", header=None, usecols=[0, 1])
     pc = DPC(df, 0.5, 5)
     dens = pc.func_densite()
     result = pc.dist_min_grde_densite(dens)

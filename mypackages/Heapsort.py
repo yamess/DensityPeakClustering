@@ -8,12 +8,11 @@ import array
 
 
 class Heap:
-    def __init__(self, arr):
+    def __init__(self):
         """
         initialisation des attributs de la class
         :param arr: la liste à trier
         """
-        self._arr = arr
         self.data = array.array('i')
         self.data.append(0)
         self.nb_elts = 0
@@ -67,15 +66,23 @@ class Heap:
         else:
             return False
 
-liste_a_trier = [3,6,2,8,5,4,3,2,1,9]
+    def fit_transform(self,arr):
+        for i in arr:
+            self.add(i)
+        liste_triee = []
+        while self.not_empty():
+            liste_triee.append(self.getmin())
+        return arr
 
-h = Heap()
-for i in liste_a_trier:
-    h.add(i)
-
-liste_triee = []
-while h.not_empty():
-    liste_triee.append(h.getmin())
-
-print(liste_triee)
+# liste_a_trier = [3,6,2,8,5,4,3,2,1,9]
+#
+# h = Heap()
+# for i in liste_a_trier:
+#     h.add(i)
+#
+# liste_triee = []
+# while h.not_empty():
+#     liste_triee.append(h.getmin())
+#
+# print(liste_triee)
 
