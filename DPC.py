@@ -32,7 +32,7 @@ def timing(func):
 
 def parallele(func, arg, max_worker):
     """
-    Cett fonction permet de paralleliser les tache de la fonction f
+    Cett fonction permet de paralleliser les taches de la fonction f
     sur les arguments arg données
     :param func: Fonction de tache
     :param arg: les arguments de la fonction f à évaluer
@@ -45,11 +45,73 @@ def parallele(func, arg, max_worker):
     return result
 
 
+def cluster_centers_weigth(dens):
+    """
+
+    :param dens:
+    :return:
+    """
+    result = []
+    for i, couplet in enumerate(dens):
+        center = dens[i][1]*dens[i][2]
+        result.append([couplet[0], couplet[1], couplet[2], round(center, 2)])
+    return result
+
+
+def sort_n(arr, n_to_sort=1, how='max'):
+    """
+    Cette fonction permet à de retourner les n valeur max/min d'une list
+    :param arr: la liste à trier
+    :param n_to_sort: n nombre à retourner
+    :param how: Préciser si minimum ou maximum
+    :return: n valeur max/min
+    """
+    arr_tmp = deepcopy(arr)
+    n = len(arr)
+    if n_to_sort == 1:
+        res = deepcopy(arr_tmp[0])
+        if how == 'max':
+            for j in range(n_to_sort,n):
+                if arr_tmp[j] > res:
+                    res, arr_tmp[j] = arr_tmp[j], res
+        elif how == 'min':
+            for j in range(n_to_sort,n):
+                if arr_tmp[j] < res:
+                    res, arr_tmp[j] = arr_tmp[j], res
+        return res
+    else:
+        res = deepcopy(arr_tmp[:n_to_sort])
+        swap = False
+        if how == 'max':
+            for i in range(n_to_sort):
+                tmp = deepcopy(res[i])
+                for j in range(n_to_sort,n):
+                    if arr_tmp[j] > tmp:
+                        tmp, arr_tmp[j] = arr_tmp[j], tmp
+                        swap = True
+                if swap:
+                    res[i] = tmp
+                    swap = False
+            return res
+        elif how == 'min':
+            for i in range(n_to_sort):
+                tmp = deepcopy(arr_tmp[i])
+                for j in range(n_to_sort,n):
+                    if arr_tmp[j] < tmp:
+                        tmp, arr_tmp[j] = arr_tmp[j], tmp
+                        swap = True
+                if swap:
+                    res[i] = tmp
+                    # resultat.append(tmp)
+                    swap = False
+            return res
+
+
 class DPC:
     """
     Clustering algorithm to optimize the
     """
-    def __init__(self, df, d_min=0.5, nb_cluster=4):
+    def __init__(self, df, d_min=0.5, nb_cluster=4, ):
         """
         Initialisation des paramètres à la construction de la classe
         :param df: un dataframe de type pandas
@@ -118,55 +180,6 @@ class DPC:
     #             nbr += 1
     #     return nbr
 
-    def sort_n(self, arr, n_to_sort=1, how='max'):
-        """
-        Cette fonction permet à de retourner les n valeur max/min d'une list
-        :param arr: la liste à trier
-        :param n_to_sort: n nombre à retourner
-        :param how: Préciser si minimum ou maximum
-        :return: n valeur max/min
-        """
-        arr_tmp = deepcopy(arr)
-        n = len(arr)
-        if n_to_sort == 1:
-            res = deepcopy(arr_tmp[0])
-            if how == 'max':
-                for j in range(n_to_sort,n):
-                    if arr_tmp[j] > res:
-                        res,arr_tmp[j] = arr_tmp[j],res
-            elif how == 'min':
-                for j in range(n_to_sort,n):
-                    if arr_tmp[j] < res:
-                        res,arr_tmp[j] = arr_tmp[j],res
-            return res
-        else:
-            res = deepcopy(arr_tmp[:n_to_sort])
-            swap = False
-            if how == 'max':
-                for i in range(n_to_sort):
-                    tmp = deepcopy(res[i])
-                    for j in range(n_to_sort,n):
-                        if arr_tmp[j] > tmp:
-                            tmp,arr_tmp[j] = arr_tmp[j],tmp
-                            swap = True
-                    if swap:
-                        res[i] = tmp
-                        swap = False
-                return res
-            elif how == 'min':
-                for i in range(n_to_sort):
-                    tmp = deepcopy(arr_tmp[i])
-                    for j in range(n_to_sort,n):
-                        if arr_tmp[j] < tmp:
-                            tmp,arr_tmp[j] = arr_tmp[j],tmp
-                            swap = True
-                    if swap:
-                        res[i] = tmp
-                        # resultat.append(tmp)
-                        swap = False
-                return res
-
-
     def dist_min_grde_densite(self, dens):
         """
         Cette fonction permet de trouver la distance minimale
@@ -175,7 +188,7 @@ class DPC:
         :return: une liste contenant le distance minimale
         """
         result = []
-        max_dens = self.sort_n(np.transpose(dens)[1], 1, 'max')
+        max_dens = sort_n(np.transpose(dens)[1], 1, 'max')
         for i, couplet in enumerate(dens):
             densite = couplet[1]
             pt_a = self.df.iloc[couplet[0], :]
@@ -184,7 +197,7 @@ class DPC:
                 for j in range(len(dens)):
                     pt_b = self.df.iloc[j, :]
                     tmp_dist.append(self.dist(point_a=pt_a, point_b=pt_b))
-                rho = self.sort_n(tmp_dist, 1, 'max')
+                rho = sort_n(tmp_dist, 1, 'max')
                 result.append([couplet[0], couplet[1], round(rho, 2)])
             else:
                 tmp_dist = []
@@ -192,20 +205,8 @@ class DPC:
                     if couplet[1] < dens[j][1]:
                         pt_b = self.df.iloc[j, :]
                         tmp_dist.append(self.dist(point_a=pt_a, point_b=pt_b))
-                rho = self.sort_n(tmp_dist, 1, 'min')
+                rho = sort_n(tmp_dist, 1, 'min')
                 result.append([couplet[0], couplet[1], round(rho, 2)])
-        return result
-
-    def cluster_centers_weigth(self, dens):
-        """
-
-        :param dens:
-        :return:
-        """
-        result = []
-        for i, couplet in enumerate(dens):
-            center = dens[i][1]*dens[i][2]
-            result.append([couplet[0], couplet[1], couplet[2], round(center, 2)])
         return result
 
     def clusters_centers(self, dens):
@@ -227,6 +228,21 @@ class DPC:
                     spy = True
         return d[-self.nb_cluster:]
 
+    def assignation(self, dens, cluster_center):
+        for i in range(self.nbr_points):
+            if i not in np.transpose(cluster_center)[0]:
+                point_a = self.df.iloc[i, :]
+                tmp = []
+                pos = []
+                for j in np.transpose(cluster_center)[0]:
+                    centre = self.df.iloc[j, :]
+                    tmp.append([self.dist(point_a, centre), j])
+                min = sort_n(np.transpose(tmp)[1], 1, how='min')
+
+
+
+
+
 
 @timing
 def main():
@@ -234,7 +250,7 @@ def main():
     pc = DPC(df, 0.5, 5)
     dens = pc.func_densite()
     result = pc.dist_min_grde_densite(dens)
-    clusters = pc.cluster_centers_weigth(result)
+    clusters = cluster_centers_weigth(result)
     centers = pc.clusters_centers(clusters)
     print(f"Dimension de df: {df.shape}\n")
     print(f"Nombre de valeur de densité: {len(dens)}\n")
@@ -247,3 +263,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+a = [[94, 5, 6.96, 34.8], [19, 7, 10.32, 72.24], [15, 7, 12.91, 90.37], [0, 7, 13.2, 92.4], [6, 8, 19.94, 159.52]]
+np.transpose(a)[0]
+import numpy as np
+b = []
+b.append([12,1])
+b.append([3,6])
+b.append([5,9])
+np.transpose(b)[0]
