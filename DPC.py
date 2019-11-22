@@ -30,7 +30,7 @@ def timing(func):
     return wrapper
 
 
-def parallele(func, arg, max_worker):
+def parallele(func, arg, max_worker=4):
     """
     Cett fonction permet de paralleliser les taches de la fonction f
     sur les arguments arg données
@@ -59,52 +59,46 @@ def cluster_centers_weigth(dens):
 
 
 def sort_n(arr, n_to_sort=1, how='max'):
-    """
-    Cette fonction permet à de retourner les n valeur max/min d'une list
-    :param arr: la liste à trier
-    :param n_to_sort: n nombre à retourner
-    :param how: Préciser si minimum ou maximum
-    :return: n valeur max/min
-    """
-    arr_tmp = deepcopy(arr)
-    n = len(arr)
-    if n_to_sort == 1:
-        res = deepcopy(arr_tmp[0])
-        if how == 'max':
+    from copy import deepcopy
+    import numpy as np
+    data_val = deepcopy(arr)
+    n = len(data_val)
+    data_id = list(np.arange(n))
+    data = np.transpose([data_val, data_id])
+    result = data[:n_to_sort]
+
+    if str(how).upper() == 'MIN':
+        for i in range(n_to_sort):
+            tmp_val = result[i,0]
+            tmp_id = result[i,1]
+            swap = False
             for j in range(n_to_sort,n):
-                if arr_tmp[j] > res:
-                    res, arr_tmp[j] = arr_tmp[j], res
-        elif how == 'min':
+                if data[j,0] < tmp_val:
+                    data[j,0],tmp_val = tmp_val,data[j,0]  # echanger les valeurs
+                    data[j,1],tmp_id = tmp_id,data[j,1]  # echanger les id
+                    swap = True
+                if swap:
+                    result[i, 0] = tmp_val
+                    result[i, 1] = tmp_id
+                    swap = False
+        return result
+    elif str(how).upper() == 'MAX':
+        for i in range(n_to_sort):
+            tmp_val = result[i,0]
+            tmp_id = result[i, 1]
+            swap = False
             for j in range(n_to_sort,n):
-                if arr_tmp[j] < res:
-                    res, arr_tmp[j] = arr_tmp[j], res
-        return res
+                if data[j,0] > tmp_val:
+                    data[j, 0], tmp_val = tmp_val, data[j, 0]  # echanger les valeurs
+                    data[j, 1], tmp_id = tmp_id, data[j, 1]  # echanger les id
+                    swap = True
+                if swap:
+                    result[i,0] = tmp_val
+                    result[i,1] = tmp_id
+                    swap = False
+        return result
     else:
-        res = deepcopy(arr_tmp[:n_to_sort])
-        swap = False
-        if how == 'max':
-            for i in range(n_to_sort):
-                tmp = deepcopy(res[i])
-                for j in range(n_to_sort,n):
-                    if arr_tmp[j] > tmp:
-                        tmp, arr_tmp[j] = arr_tmp[j], tmp
-                        swap = True
-                if swap:
-                    res[i] = tmp
-                    swap = False
-            return res
-        elif how == 'min':
-            for i in range(n_to_sort):
-                tmp = deepcopy(arr_tmp[i])
-                for j in range(n_to_sort,n):
-                    if arr_tmp[j] < tmp:
-                        tmp, arr_tmp[j] = arr_tmp[j], tmp
-                        swap = True
-                if swap:
-                    res[i] = tmp
-                    # resultat.append(tmp)
-                    swap = False
-            return res
+        print("how prend uniquement les valeurs 'min' ou 'max'")
 
 
 class DPC:
