@@ -149,3 +149,16 @@ d = [12,34,5,9,90,435,6,5,7,8]
 print(tri(d, 5, how='Max'))
 
 print(d[1][1])
+
+def cluster_centers_weigth(dens):
+    """
+
+    :param dens:
+    :return:
+    """
+    result = []
+    for i, couplet in enumerate(dens):
+        center = dens[i][1]*dens[i][2]
+        result.append([couplet[0], couplet[1], couplet[2], round(center, 2)])
+    return result
+

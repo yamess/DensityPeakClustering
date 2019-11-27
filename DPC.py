@@ -5,142 +5,58 @@
 # Team Project				                        #
 #####################################################
 
+# Librairies de python
 import numpy as np
 import pandas as pd
 from copy import deepcopy
+
+# Nos propre librairies
 from mypackages.Heapsort import Heap
-
-
-def timing(func):
-    """
-    Cette fonction est un decorateur qui met de calculer le temps d'execution d'une fonction
-    :param func: la fonction a évaluer
-    :return: exécute la fonction et le temps d'exécution
-    """
-    import time
-
-    def wrapper(*args, **kwargs):
-        print("Calculation start")
-        start = time.perf_counter()
-        res = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        print(f"Execution time: {round(end_time-start,2)} second(s)")
-        print("Finished!")
-        return res
-    return wrapper
-
-
-def parallele(func, arg, max_worker=4):
-    """
-    Cett fonction permet de paralleliser les taches de la fonction f
-    sur les arguments arg données
-    :param func: Fonction de tache
-    :param arg: les arguments de la fonction f à évaluer
-    :param max_worker: Nombre total de thread à lançer
-    :return: Liste des resultats de l'exécution de la fonction f sur pour chaque argument de arg
-    """
-    import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(max_worker=max_worker) as executor:
-        result = executor.map(func, arg, timeout=None)
-    return result
-
-
-def cluster_centers_weigth(dens):
-    """
-
-    :param dens:
-    :return:
-    """
-    result = []
-    for i, couplet in enumerate(dens):
-        center = dens[i][1]*dens[i][2]
-        result.append([couplet[0], couplet[1], couplet[2], round(center, 2)])
-    return result
-
-
-def sort_n(arr, n_to_sort=1, how='max'):
-    from copy import deepcopy
-    import numpy as np
-    data_val = deepcopy(arr)
-    n = len(data_val)
-    data_id = list(np.arange(n))
-    data = np.transpose([data_val, data_id])
-    result = data[:n_to_sort]
-
-    if str(how).upper() == 'MIN':
-        for i in range(n_to_sort):
-            tmp_val = result[i,0]
-            tmp_id = result[i,1]
-            swap = False
-            for j in range(n_to_sort,n):
-                if data[j,0] < tmp_val:
-                    data[j,0],tmp_val = tmp_val,data[j,0]  # echanger les valeurs
-                    data[j,1],tmp_id = tmp_id,data[j,1]  # echanger les id
-                    swap = True
-                if swap:
-                    result[i, 0] = tmp_val
-                    result[i, 1] = tmp_id
-                    swap = False
-        return result
-    elif str(how).upper() == 'MAX':
-        for i in range(n_to_sort):
-            tmp_val = result[i,0]
-            tmp_id = result[i, 1]
-            swap = False
-            for j in range(n_to_sort,n):
-                if data[j,0] > tmp_val:
-                    data[j, 0], tmp_val = tmp_val, data[j, 0]  # echanger les valeurs
-                    data[j, 1], tmp_id = tmp_id, data[j, 1]  # echanger les id
-                    swap = True
-                if swap:
-                    result[i,0] = tmp_val
-                    result[i,1] = tmp_id
-                    swap = False
-        return result
-    else:
-        print("how prend uniquement les valeurs 'min' ou 'max'")
+from mypackages.decorators import timing
+from mypackages.processing import sort_n
+from mypackages.parallele import parallele
 
 
 class DPC:
     """
     Clustering algorithm to optimize the
     """
-    def __init__(self, df, d_min=0.5, nb_cluster=4, ):
+    def __init__(self, df, d_min=0.5, nb_cluster=4, type_distance=2):
         """
         Initialisation des paramètres à la construction de la classe
         :param df: un dataframe de type pandas
         :param d_min: la distance minimale (hyperparamètre)
         """
-        self.df = df
-        self.d_min = d_min
-        self.nbr_points = self.df.shape[0]
-        self.nbr_dim = self.df.shape[1]
-        self.densite = []
-        self.nb_cluster = nb_cluster
+        self._df = df.copy()
+        self._type_distance = type_distance
+        self._cluster_center = []
+        self._d_min = d_min
+        self._nbr_points = self._df.shape[0]
+        self._nbr_dim = self._df.shape[1]
+        self._densite = []
+        self._nb_cluster = nb_cluster
         self.eps = 1e-20  # valeur d'epsilon pour comparer à 0
-        # self.get_params = dict()
-        # self.heap = Heap()
 
-    # @property
-    # def get_params(self):
-    #     return self.get_params
-    #
-    # @get_params.setter
-    # def get_params(self, value):
-    #     self.get_params = value
+    @property
+    def cluster_center(self):
+        return self.cluster_center
+
+    @cluster_center.setter
+    def cluster_center(self, value):
+        self.cluster_center = value
 
     def dist(self, point_a, point_b):
         """
-        Fonction de calcul de la distance euclidienne entre 2 points
+        Fonction de calcul de la distance entre 2 points
         :param point_a: le point b (pourrai correspondre à une observation dans un dataframe)
         :param point_b: le point b (pourrai correspondre à une observation dans un dataframe)
         :return: Retourne la distance euclidienne entre les 2 points point_a et point_b
         """
-        dimension = self.nbr_dim
+        dimension = self._nbr_dim
         total = 0
         for i in range(dimension):
-            total += (point_a[i] - point_b[i])**2
-        return np.sqrt(total)
+            total += pow(abs(point_a[i] - point_b[i]), self._type_distance)
+        return pow(total, 1/self._type_distance)
 
     def func_densite(self):
         """
@@ -148,31 +64,17 @@ class DPC:
         Ici le point pour lequel le calcul est fait n'est pas inclu
         :return: Retourne un liste contenant la densité pour chaque point
         """
-        n = self.nbr_points
+        n = self._nbr_points
         dens = np.zeros(n, dtype=int)  # on defini un liste vide
         result = list()  # Initialisation de la liste en sortie à vide
         for i in range(n):
-            a = self.df.iloc[i, :]  # obtention des coordinnées du point a
+            a = self._df.iloc[i, :]  # obtention des coordinnées du point a
             for j in range(i+1, n):
                 b = self.df.iloc[j, :]  # obtention des coordinnées du point b
-                if self.dist(point_a=a, point_b=b) < self.d_min:
+                if self.dist(point_a=a, point_b=b) < self._d_min:
                     dens[i] += 1
             result.append([i, dens[i]])
         return result
-
-    # def comptage(self, array, val):
-    #     """
-    #     Fonction de comptage d'un nombre val dans la list array
-    #     :param array: array dans lequel la recherche doit s'effectuer
-    #     :param val: la valeur dont on veut compter l'occurence
-    #     :return: Retourne le nombre total d'occurence de val dans array
-    #     """
-    #     n = len(array)
-    #     nbr = 0
-    #     for i in range(n):
-    #         if (array[i] - val) > self.eps:
-    #             nbr += 1
-    #     return nbr
 
     def dist_min_grde_densite(self, dens):
         """
@@ -185,11 +87,11 @@ class DPC:
         max_dens = sort_n(np.transpose(dens)[1], 1, 'max')
         for i, couplet in enumerate(dens):
             densite = couplet[1]
-            pt_a = self.df.iloc[couplet[0], :]
+            pt_a = self._df.iloc[couplet[0], :]
             if densite == max_dens:
                 tmp_dist = []
                 for j in range(len(dens)):
-                    pt_b = self.df.iloc[j, :]
+                    pt_b = self._df.iloc[j, :]
                     tmp_dist.append(self.dist(point_a=pt_a, point_b=pt_b))
                 rho = sort_n(tmp_dist, 1, 'max')
                 result.append([couplet[0], couplet[1], round(rho, 2)])
@@ -205,7 +107,6 @@ class DPC:
 
     def clusters_centers(self, dens):
         """
-
         :param dens:
         :return:
         """
@@ -220,10 +121,11 @@ class DPC:
                     d[i] = d[i + 1]
                     d[i + 1] = tmp
                     spy = True
-        return d[-self.nb_cluster:]
+        return d[-self._nb_cluster:]
 
     def assignation(self, dens, cluster_center):
-        for i in range(self.nbr_points):
+        tmp = self._df
+        for i in range(self._nbr_points):
             if i not in np.transpose(cluster_center)[0]:
                 point_a = self.df.iloc[i, :]
                 tmp = []
@@ -232,10 +134,6 @@ class DPC:
                     centre = self.df.iloc[j, :]
                     tmp.append([self.dist(point_a, centre), j])
                 min = sort_n(np.transpose(tmp)[1], 1, how='min')
-
-
-
-
 
 
 @timing
@@ -257,12 +155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-a = [[94, 5, 6.96, 34.8], [19, 7, 10.32, 72.24], [15, 7, 12.91, 90.37], [0, 7, 13.2, 92.4], [6, 8, 19.94, 159.52]]
-np.transpose(a)[0]
-import numpy as np
-b = []
-b.append([12,1])
-b.append([3,6])
-b.append([5,9])
-np.transpose(b)[0]
