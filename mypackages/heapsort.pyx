@@ -8,13 +8,15 @@ import array
 
 
 class Heap:
-    def __init__(self):
+    def __init__(self, arr):
         self.data = array.array('i')
         self.data.append(0)
         self.nb_elts = 0
+        self.n = len(arr)
+        self.list = arr
 
-    def add(self, i):
-        for i in range(n):
+    def add(self):
+        for i in range(self.n):
             self.data.append(i)
             self.nb_elts += 1
             pos = self.nb_elts
@@ -63,9 +65,8 @@ class Heap:
         else:
             return False
 
-    def sort(self, arr):
-        for i in arr:
-            self.add(i)
+    def sort(self):
+        self.add()
         result = []
         while self.not_empty():
             result.append(self.getmin())
@@ -74,6 +75,6 @@ class Heap:
 
 liste_a_trier = [3, 6, 2, 8, 5, 4, 3, 2, 1, 9]
 
-h = Heap()
-print(h.sort(liste_a_trier))
+h = Heap(liste_a_trier)
+print(h.sort())
 
