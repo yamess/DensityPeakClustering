@@ -19,7 +19,7 @@ def sort_n(arr, n_to_sort=1, how='max'):
                     swap = True
                 if swap:
                     result[i, 0] = tmp_val
-                    result[i, 1] = tmp_id
+                    result[i, 1] = int(tmp_id)
                     swap = False
         return result
     elif str(how).upper() == 'MAX':
@@ -34,7 +34,7 @@ def sort_n(arr, n_to_sort=1, how='max'):
                     swap = True
                 if swap:
                     result[i, 0] = tmp_val
-                    result[i, 1] = tmp_id
+                    result[i, 1] = int(tmp_id)
                     swap = False
         return result
     else:
@@ -51,7 +51,3 @@ def cluster_centers_weigth(dens):
         center = dens[i][1]*dens[i][2]
         result.append([couplet[0], couplet[1], couplet[2], round(center, 2)])
     return result
-
-test_list = [2,3,4,7,9,1,10,4,8,3]
-
-sort_n(test_list,2,'max')

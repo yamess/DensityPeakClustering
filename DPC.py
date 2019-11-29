@@ -12,7 +12,7 @@ from copy import deepcopy
 import pyximport
 
 # Nos propre librairies
-from mypackages.heapsort import Heap
+# from mypackages.heapsort import Heap
 from mypackages.decorators import timing
 from mypackages.processing import sort_n, cluster_centers_weigth
 from mypackages.parallele import parallele
@@ -37,6 +37,7 @@ class DPC:
         self._densite = []
         self._nb_cluster = nb_cluster
         self.eps = 1e-20  # valeur d'epsilon pour comparer à 0
+        self.point = None
         # self.rho = 0
 
     def distance(self, point_a, point_b):
@@ -82,7 +83,6 @@ class DPC:
     # def rho(self, value):
     #     self.rho = value
 
-    @property
     def delta(self):
         """
         Cette fonction permet de caclculer delta qui la distance minimale entre un point donné et
@@ -117,7 +117,7 @@ class DPC:
                     dist_min = tmp_distance[0]
                 result.append([n_uplet[0], n_uplet[1], np.round(dist_min,2), n_uplet[2]])
             else:
-                result.append([n_uplet[0],n_uplet[1], 0.0, n_uplet[2]])
+                result.append([n_uplet[0], n_uplet[1], 0.0, n_uplet[2]])
         return result
 
     def centres(self):
@@ -126,7 +126,7 @@ class DPC:
         :return:
         """
         # result = []
-        data = self.delta
+        data = self.delta()
         data = [[data[i][0],data[i][1], data[i][2], np.round(data[i][1]*data[i][2],2),data[i][3]]
                 for i, _ in enumerate(data)]
         # d = self.delta.copy()
@@ -143,13 +143,36 @@ class DPC:
                     spy = True
         return data[:self._nb_cluster]
 
+    @property
+    def point_assigner(self):
+        return list(np.transpose(self.delta())[0])
+
+    @point_assigner.setter
+    def point_assigner(self, value):
+        pass
+
     def assignation(self):
-        points_a_assigner = self.delta
         centres = [i[0] for i in self.centres()]
-        clusters = []
-        for i in range(1,self._nbr_points+1):
-            if points_a_assigner[i][0] not in centres:
-                for j in range(i):
+        rho = self.rho()
+        clusters = dict()
+        list_total = self.point_assigner
+        list_point = [i for i in list_total if i not in centres]
+        for i, j in enumerate(centres):
+            clusters[i] = [j]
+        for i in list_point:
+            list_sup = list_total[:list_total.index(i)]
+            dist = []
+            for k, v in enumerate(list_sup):
+                dist.append(self.distance(self._df.iloc[i, :], self._df.iloc[k, :]))
+            dist_min = sort_n(dist, n_to_sort=1, how='min')
+            point_pred = dist_min[0][1]
+            if point_pred in centres:
+                clusters[centres.index(point_pred)].append(i)
+            else:
+                for k, v in clusters.items():
+                    if point_pred in v:
+                        clusters[k].append(i)
+        return clusters
 
 
     # def assignation(self, dens, cluster_center):
@@ -166,13 +189,15 @@ class DPC:
     #
 
 
-@timing
+# @timing
 # def main():
 df = pd.read_csv("data/data.csv", sep=";", header=None, usecols=[0, 1])
 pc = DPC(df, 0.5, 5)
-print(pc.rho)
-print(pc.delta)
-d = pc.centres()
+# print(pc.point_assigner)
+# print(pc.rho())
+# print(pc.delta)
+# d = pc.centres()
+print(pc.assignation())
 #     clusters = cluster_centers_weigth(result)
 #     centers = pc.clusters_centers(clusters)
 #     print(f"Dimension de df: {df.shape}\n")
