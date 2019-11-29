@@ -82,7 +82,7 @@ class DPC:
     # @rho.setter
     # def rho(self, value):
     #     self.rho = value
-
+    @property
     def delta(self):
         """
         Cette fonction permet de caclculer delta qui la distance minimale entre un point donné et
@@ -126,7 +126,7 @@ class DPC:
         :return:
         """
         # result = []
-        data = self.delta()
+        data = self.delta
         data = [[data[i][0],data[i][1], data[i][2], np.round(data[i][1]*data[i][2],2),data[i][3]]
                 for i, _ in enumerate(data)]
         # d = self.delta.copy()
@@ -145,49 +145,58 @@ class DPC:
 
     @property
     def point_assigner(self):
-        return list(np.transpose(self.delta())[0])
+        return list(np.transpose(self.delta)[0])
 
     @point_assigner.setter
     def point_assigner(self, value):
         pass
 
     def assignation(self):
-        centres = [i[0] for i in self.centres()]
-        rho = self.rho()
-        clusters = dict()
+        cluster_centres = [i[0] for i in self.centres()]
+        clusters_memders = dict()
         list_total = self.point_assigner
-        list_point = [i for i in list_total if i not in centres]
-        for i, j in enumerate(centres):
-            clusters[i] = [j]
+        list_point = [i for i in list_total if i not in cluster_centres]
+        for i, j in enumerate(cluster_centres):
+            clusters_memders[i] = [j]
         for i in list_point:
             list_sup = list_total[:list_total.index(i)]
             dist = []
-            for k, v in enumerate(list_sup):
+            for k in list_sup:
                 dist.append(self.distance(self._df.iloc[i, :], self._df.iloc[k, :]))
-            dist_min = sort_n(dist, n_to_sort=1, how='min')
-            point_pred = dist_min[0][1]
-            if point_pred in centres:
-                clusters[centres.index(point_pred)].append(i)
-            else:
-                for k, v in clusters.items():
-                    if point_pred in v:
-                        clusters[k].append(i)
-        return clusters
+            # dist_min = sort_n(dist, n_to_sort=1, how='min')
+            point_pred = int(sort_n(dist, n_to_sort=1, how='min')[0][1])
 
+            # int(dist_min[0][1])
+            # if point_pred in cluster_centres:
+            #     clusters_memders[cluster_centres.index(point_pred)].append(i)
+            # else:
+            for k, v in clusters_memders.items():
+                if point_pred in v:
+                    clusters_memders[k].append(i)
+                    # else:
+                    #     clusters_memders[max(clusters_memders.keys())+1].append(i)
+                        # break
+                        # print(i,k,v)
+        return clusters_memders
 
-    # def assignation(self, dens, cluster_center):
-    #     tmp = self._df
-    #     for i in range(self._nbr_points):
-    #         if i not in np.transpose(cluster_center)[0]:
-    #             point_a = self.df.iloc[i, :]
-    #             tmp = []
-    #             pos = []
-    #             for j in np.transpose(cluster_center)[0]:
-    #                 centre = self.df.iloc[j, :]
-    #                 tmp.append([self.distance(point_a, centre), j])
-    #             min = sort_n(np.transpose(tmp)[1], 1, how='min')
+    # def decision_graph(self):
+    #     import matplotlib.pyplot as plt
+    #     clusters = self.assignation()
     #
-
+    #     colors = ["green","blue","red","yellow"]
+    #     for k, v in clusters.items():
+    #         plt.scatter(x=self._df.iloc[v, 0],
+    #                     y=self._df.iloc[v, 1],
+    #                     color=colors[k],
+    #                     alpha=0.6,
+    #                     marker="o")
+    #     plt.show()
+    #     # data = np.transpose(self.delta)[[0,1,2]]
+        # plt.scatter(data[1], data[2])
+        # plt.xlabel("Densité Local rho")
+        # plt.ylabel("Delta")
+        # plt.title("Decision Graph")
+        # plt.show()
 
 # @timing
 # def main():
@@ -196,8 +205,9 @@ pc = DPC(df, 0.5, 5)
 # print(pc.point_assigner)
 # print(pc.rho())
 # print(pc.delta)
+# pc.decision_graph()
 # d = pc.centres()
-print(pc.assignation())
+test = pc.assignation()
 #     clusters = cluster_centers_weigth(result)
 #     centers = pc.clusters_centers(clusters)
 #     print(f"Dimension de df: {df.shape}\n")
@@ -211,3 +221,9 @@ print(pc.assignation())
 
 # if __name__ == "__main__":
 #     main()
+
+# print(test.keys())
+print(len(test[0])+len(test[1])+len(test[2])+len(test[3])+len(test[4]))
+# import matplotlib.pyplot as plt
+# plt.scatter(df.iloc[:,0],df.iloc[:,1])
+# plt.show()

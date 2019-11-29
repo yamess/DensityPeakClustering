@@ -13,7 +13,7 @@ import pip
 
 #df = pandas.read_csv("data.csv", delimiter=";")
 # lECTURE DU FICHIER SOUS FORMAT dataframe
-d = pd.read_csv("data.csv", sep=';', header=None)
+d = pd.read_csv("../data/data.csv", sep=';', header=None)
 
 # l a3ieme colonne non utilisée dans l'algorithm
 # elle sert juste à valider les resultats
